@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.persistence.EntityManager;
 import models.Role;
 
 /**
@@ -20,79 +21,53 @@ import models.Role;
  * @author 468181
  */
 public class RoleDB {
-    private String querry = "";
-    PreparedStatement statement = null;
-    ResultSet result = null;
     
     public List<Role> getAll() throws Exception
     {
-        List<Role> roles = new ArrayList<>();
-        ConnectionPool pool = ConnectionPool.getInstance();
-        Connection connection = pool.getConnection();
-
-        querry = "SELECT * FROM role";
+        EntityManager em = DBUtil.getEmFactory().createEntityManager();
         
         try {
-            statement = connection.prepareStatement(querry);
-            result = statement.executeQuery();
-            while (result.next()) {
-                int roleId = result.getInt(1);
-                String userRole = result.getString(2);
-                Role allRoles = new Role(roleId, userRole);
-                roles.add(allRoles);
-            }
-        } finally {
-            DBUtil.closeResultSet(result);
-            DBUtil.closePreparedStatement(statement);
-            pool.freeConnection(connection);
+            return em.createNamedQuery("Role.findAll", Role.class).getResultList();
+        } 
+        finally {
+            em.close();
         }
-        return roles;
     }
     
-    public int getRole (String roleName) {
-        ConnectionPool pool = ConnectionPool.getInstance();
-        Connection connection = pool.getConnection();
-        
-        querry = "SELECT role_id FROM role WHERE role_name=?";
+   
+    
+    public String getRole (int roleID) {
+        EntityManager em = DBUtil.getEmFactory().createEntityManager();
         
         try {
-            statement = connection.prepareStatement(querry);
-            statement.setString(1, roleName);
-            result = statement.executeQuery();
-            if (result.next()) {
-                return result.getInt(1);
-            }
-        } catch (SQLException ex) {
-            Logger.getLogger(RoleDB.class.getName()).log(Level.SEVERE, null, ex);
+            Role role  = em.find(Role.class, roleID);
+            return role.getRoleName();
         } finally {
-            DBUtil.closeResultSet(result);
-            DBUtil.closePreparedStatement(statement);
-            pool.freeConnection(connection);
+            em.close();
         }
-        return 0;
     }
     
-    public String getRole (int role) {
-        ConnectionPool pool = ConnectionPool.getInstance();
-        Connection connection = pool.getConnection();
+        public int getRole (String roleName) {
+        int roleId = 0;
+        switch (roleName.toLowerCase()) {
+            case "system admin" : roleId = 1; break;
+            case "regular user" : roleId = 2; break;
+            case "company admin" : roleId = 3; break;
+        }
+        return roleId;
+    }
         
-        querry = "SELECT role_name FROM role WHERE role_id=?";
+    public Role getRoleObject (int roleId) {
+        EntityManager em = DBUtil.getEmFactory().createEntityManager();
         
         try {
-            statement = connection.prepareStatement(querry);
-            statement.setInt(1, role);
-            result = statement.executeQuery();
-            result.next();
+            return em.find(Role.class, roleId);
+        } finally {
+            em.close();
+        }
+    }
+    
  
-            return result.getString(1);
-            
-        } catch (SQLException ex) {
-            Logger.getLogger(RoleDB.class.getName()).log(Level.SEVERE, null, ex);
-        } finally {
-            DBUtil.closeResultSet(result);
-            DBUtil.closePreparedStatement(statement);
-            pool.freeConnection(connection);
-        }
-        return null;
-    }
+    
+    
 }
